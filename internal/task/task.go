@@ -1,6 +1,7 @@
 package task
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,7 +53,7 @@ func (t *Task) Process() (any, error) {
 	if t.fn == nil {
 		t.status = StatusCompleted
 		t.completedAt = time.Now()
-		return nil, nil
+		return nil, errors.New(t.error)
 	}
 
 	res, err := t.fn(t.parameters)
