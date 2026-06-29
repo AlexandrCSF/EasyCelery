@@ -10,6 +10,7 @@ type Queue interface {
 	Push(task task.Task)
 	Pop() (*task.Task, error)
 	ProcessNext() error
+	HasNext() bool
 }
 
 type InMemoryQueue struct {
@@ -24,6 +25,9 @@ func NewInMemoryQueue() *InMemoryQueue {
 
 func (q *InMemoryQueue) Push(task task.Task) {
 	q.tasksToProcess = append(q.tasksToProcess, task)
+}
+func (q *InMemoryQueue) HasNext() bool {
+	return len(q.tasksToProcess) > 0
 }
 
 func (q *InMemoryQueue) Pop() (*task.Task, error) {

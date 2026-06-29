@@ -1,11 +1,16 @@
 package runner
 
-import "easycelery/internal/queue"
+import (
+	"easycelery/internal/queue"
+	"easycelery/internal/task"
+	"log/slog"
+)
 
 const defaultConcurrency = 1
 
 type Runner interface {
 	RunExecutionForever()
+	SendTask(task *task.Task)
 }
 
 type DefaultRunner struct {
@@ -24,8 +29,17 @@ func NewDefaultRunnerDefaultValues(q queue.Queue) *DefaultRunner {
 	return &DefaultRunner{queue: q, concurrency: defaultConcurrency}
 }
 
+func (r *DefaultRunner) SendTask(t task.Task) {
+	r.queue.Push(t)
+}
+
 func (r *DefaultRunner) RunExecutionForever() {
 	for {
-		err := r.queue.ProcessNext()
+		if r.queue.HasNext() {
+			err := r.queue.ProcessNext()
+			if err != nil {
+				slog.Error("Error processing next task: %s", err)
+			}
+		}
 	}
 }

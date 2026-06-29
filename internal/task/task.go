@@ -16,7 +16,8 @@ const (
 	StatusError      TaskStatuses = "error"
 )
 
-type TaskFunc func(params []string) (any, error)
+type TaskFunc func() (any, error)
+
 type Task struct {
 	id string
 
@@ -56,7 +57,7 @@ func (t *Task) Process() (any, error) {
 		return nil, errors.New(t.error)
 	}
 
-	res, err := t.fn(t.parameters)
+	res, err := t.fn()
 	if err != nil {
 		t.status = StatusError
 		t.error = err.Error()
