@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"easycelery/internal/queue"
 	"easycelery/internal/runner"
 	"easycelery/internal/task"
@@ -8,9 +9,13 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	concurency := flag.Int("concurrency", 10, "Number of concurrent processes")
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -18,10 +23,12 @@ func main() {
 	slog.SetDefault(logger)
 	mainQueue := queue.NewInMemoryQueue()
 	mainRunner := runner.NewDefaultRunner(mainQueue, *concurency)
-	mainRunner.SendTask(*task.NewTask(addRandom, nil))
 
-	mainRunner.RunExecutionForever()
-
+	go mainRunner.RunExecutionForever()
+	for i := 0; i < 10; i++ {
+		mainRunner.SendTask(*task.NewTask(addRandom, nil))
+	}
+	<-ctx.Done()
 }
 
 func addRandom() (any, error) {
