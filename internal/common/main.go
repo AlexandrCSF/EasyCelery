@@ -26,11 +26,17 @@ func main() {
 
 	go mainRunner.RunExecutionForever()
 	for i := 0; i < 10; i++ {
-		mainRunner.SendTask(*task.NewTask(addRandom, nil))
+		mainRunner.SendTask(*task.NewTask(func() (any, error) {
+			return sumTwo(10, 15)
+		}))
 	}
 	<-ctx.Done()
 }
 
 func addRandom() (any, error) {
 	return rand.Intn(10) + rand.Intn(10), nil
+}
+
+func sumTwo(a, b int) (any, error) {
+	return a + b, nil
 }

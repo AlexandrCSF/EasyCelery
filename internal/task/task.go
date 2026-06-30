@@ -28,17 +28,15 @@ type Task struct {
 
 	status TaskStatuses
 
-	fn      TaskFunc
-	payload []byte
+	fn TaskFunc
 }
 
-func NewTask(fn TaskFunc, payload []byte) *Task {
+func NewTask(fn TaskFunc) *Task {
 	return &Task{
 		id:        uuid.NewString(),
 		status:    StatusPlan,
 		CreatedAt: time.Now(),
 		fn:        fn,
-		payload:   payload,
 	}
 }
 
