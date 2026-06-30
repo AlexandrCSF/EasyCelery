@@ -38,7 +38,7 @@ func (r *DefaultRunner) RunExecutionForever() {
 		if r.queue.HasNext() {
 			err := r.queue.ProcessNext()
 			if err != nil {
-				slog.Error("Error processing next task: %s", err)
+				slog.Error("error processing next task", "error", err)
 			}
 		}
 	}

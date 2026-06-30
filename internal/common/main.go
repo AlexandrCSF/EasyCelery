@@ -25,5 +25,5 @@ func main() {
 }
 
 func addRandom() (any, error) {
-	return rand.Int() + rand.Int(), nil
+	return rand.Intn(10) + rand.Intn(10), nil
 }

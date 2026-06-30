@@ -1,7 +1,6 @@
 package task
 
 import (
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,56 +16,46 @@ const (
 )
 
 type TaskFunc func() (any, error)
-
 type Task struct {
 	id string
 
-	fn         TaskFunc
-	parameters []string
+	CreatedAt time.Time
+	StartAt   time.Time
 
-	createdAt time.Time
-	startAt   time.Time
-
-	completedAt time.Time
-	result      any
-	error       string
+	CompletedAt time.Time
+	Result      any
+	Error       string
 
 	status TaskStatuses
+
+	fn      TaskFunc
+	payload []byte
 }
 
-func NewTask(fn TaskFunc, params []string) *Task {
+func NewTask(fn TaskFunc, payload []byte) *Task {
 	return &Task{
-		id:         uuid.NewString(),
-		status:     StatusPlan,
-		fn:         fn,
-		parameters: params,
-		createdAt:  time.Now(),
+		id:        uuid.NewString(),
+		status:    StatusPlan,
+		CreatedAt: time.Now(),
+		fn:        fn,
+		payload:   payload,
 	}
 }
-func (task *Task) Id() string {
-	return task.id
+
+func (t *Task) Status() TaskStatuses {
+	return t.status
+}
+func (t *Task) SetStatus(status TaskStatuses) {
+	t.status = status
 }
 
-func (t *Task) Process() (any, error) {
-	t.status = StatusProcessing
-	t.startAt = time.Now()
+func (t *Task) Func() TaskFunc {
+	return t.fn
+}
+func (t *Task) ID() string {
+	return t.id
+}
 
-	if t.fn == nil {
-		t.status = StatusCompleted
-		t.completedAt = time.Now()
-		return nil, errors.New(t.error)
-	}
-
-	res, err := t.fn()
-	if err != nil {
-		t.status = StatusError
-		t.error = err.Error()
-		t.completedAt = time.Now()
-		return nil, err
-	}
-
-	t.status = StatusCompleted
-	t.result = res
-	t.completedAt = time.Now()
-	return res, nil
+func (t *Task) SetStartAt() {
+	t.StartAt = time.Now()
 }

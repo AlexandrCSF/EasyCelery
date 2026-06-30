@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"easycelery/internal/executor"
 	"easycelery/internal/task"
 	"errors"
 	"log/slog"
@@ -48,8 +49,12 @@ func (q *InMemoryQueue) ProcessNext() error {
 			return err
 		}
 	}
-	res, err := taskToProcess.Process()
-	slog.Info("Task", taskToProcess.Id(), "completed with result: ", res)
+	queue_executor := executor.GetDefaultExecutor()
+	res, err := queue_executor.Process(taskToProcess)
+	slog.Info("Task completed",
+		"task_id", taskToProcess.ID(),
+		"result", res,
+	)
 	if err != nil {
 		q.erroredTasks = append(q.erroredTasks, *taskToProcess)
 		return err
