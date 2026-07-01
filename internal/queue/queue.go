@@ -28,6 +28,10 @@ func NewInMemoryQueue() *InMemoryQueue {
 func (q *InMemoryQueue) Push(task task.Task) {
 	q.tasksToProcess = append(q.tasksToProcess, task)
 }
+
+func (q *InMemoryQueue) Length() int {
+	return len(q.tasksToProcess)
+}
 func (q *InMemoryQueue) HasNext() bool {
 	return len(q.tasksToProcess) > 0
 }
