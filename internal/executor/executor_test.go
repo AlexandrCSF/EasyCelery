@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func BenchmarkExecutor(b *testing.B) {
+
+}
 func TestExecutorSuccessfulExecution(t *testing.T) {
 	ex := GetDefaultExecutor()
 	tsk := task.NewTask(func(ctx context.Context) (any, error) {

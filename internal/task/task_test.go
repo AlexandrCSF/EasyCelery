@@ -10,6 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func BenchmarkTask(b *testing.B) {
+
+}
 func TestNewTask(t *testing.T) {
 	testFunc := func(ctx context.Context) (any, error) {
 		return 1, nil

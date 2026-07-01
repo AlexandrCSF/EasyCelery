@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func BenchmarkQueue(b *testing.B) {
+
+}
 func testTask() *task.Task {
 	return task.NewTask(func(ctx context.Context) (any, error) {
 		return 1, nil

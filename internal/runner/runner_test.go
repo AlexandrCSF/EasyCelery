@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func BenchmarkRunner(b *testing.B) {
+
+}
 func TestRunnerSingleTask(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
