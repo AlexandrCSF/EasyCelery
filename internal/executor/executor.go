@@ -15,7 +15,6 @@ var (
 
 type Executor interface {
 	Process(task *task.Task, ctx context.Context) (any, error)
-	Auth() (any, error)
 }
 type DefaultExecutor struct {
 }
@@ -25,9 +24,6 @@ func GetDefaultExecutor() *DefaultExecutor {
 		inst = &DefaultExecutor{}
 	})
 	return inst
-}
-func (e *DefaultExecutor) Auth() (any, error) {
-	return nil, nil
 }
 func (executor *DefaultExecutor) Process(t *task.Task, ctx context.Context) (any, error) {
 	t.SetStatus(task.StatusProcessing)
