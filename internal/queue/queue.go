@@ -11,7 +11,7 @@ import (
 type Queue interface {
 	Push(task task.Task)
 	Pop() (*task.Task, error)
-	ProcessNext(ctx context.Context) error
+	HandleNext(ctx context.Context) error
 	HasNext() bool
 	GetExecutor() executor.Executor
 	HandleTaskError(task task.Task) error
@@ -64,7 +64,7 @@ func (q *InMemoryQueue) Pop() (*task.Task, error) {
 	return &poppedTask, nil
 }
 
-func (q *InMemoryQueue) ProcessNext(ctx context.Context) error {
+func (q *InMemoryQueue) HandleNext(ctx context.Context) error {
 	taskToProcess, err := q.Pop()
 	if err != nil {
 		if taskToProcess != nil {

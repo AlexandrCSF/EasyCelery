@@ -52,7 +52,7 @@ func (r *DefaultRunner) Run(ctx context.Context) {
 			}
 		}
 
-		if err := r.queue.ProcessNext(ctx); err != nil {
+		if err := r.queue.HandleNext(ctx); err != nil {
 			slog.Error("error processing next task", "error", err)
 		}
 	}
