@@ -5,7 +5,6 @@ import (
 	"easycelery/internal/queue"
 	"easycelery/internal/task"
 	"log/slog"
-	"time"
 )
 
 const defaultConcurrency = 1
@@ -38,22 +37,13 @@ func (r *DefaultRunner) SendTask(t task.Task) {
 func (r *DefaultRunner) Run(ctx context.Context) {
 	for {
 		select {
+		case <-r.queue.GetNotificationChannel():
+			if err := r.queue.HandleNext(ctx); err != nil {
+				slog.Error("error processing next task", "error", err)
+			}
 		case <-ctx.Done():
 			return
 		default:
-		}
-
-		if !r.queue.HasNext() {
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(50 * time.Millisecond):
-				continue
-			}
-		}
-
-		if err := r.queue.HandleNext(ctx); err != nil {
-			slog.Error("error processing next task", "error", err)
 		}
 	}
 }
