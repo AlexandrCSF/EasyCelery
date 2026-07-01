@@ -10,7 +10,9 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -24,13 +26,22 @@ func main() {
 	mainQueue := queue.NewInMemoryQueue()
 	mainRunner := runner.NewDefaultRunner(mainQueue, *concurency)
 
-	go mainRunner.RunExecutionForever()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		mainRunner.Run(ctx)
+	}()
+
 	for i := 0; i < 10; i++ {
-		mainRunner.SendTask(*task.NewTask(func() (any, error) {
+		mainRunner.SendTask(*task.NewTask(func(ctx context.Context) (any, error) {
+			time.Sleep(1 * time.Second)
 			return sumTwo(10, 15)
 		}))
 	}
+
 	<-ctx.Done()
+	wg.Wait()
 }
 
 func addRandom() (any, error) {

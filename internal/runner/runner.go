@@ -1,16 +1,18 @@
 package runner
 
 import (
+	"context"
 	"easycelery/internal/queue"
 	"easycelery/internal/task"
 	"log/slog"
+	"time"
 )
 
 const defaultConcurrency = 1
 
 type Runner interface {
-	RunExecutionForever()
-	SendTask(task *task.Task)
+	Run()
+	SendTask(task task.Task)
 }
 
 type DefaultRunner struct {
@@ -33,13 +35,25 @@ func (r *DefaultRunner) SendTask(t task.Task) {
 	r.queue.Push(t)
 }
 
-func (r *DefaultRunner) RunExecutionForever() {
+func (r *DefaultRunner) Run(ctx context.Context) {
 	for {
-		if r.queue.HasNext() {
-			err := r.queue.ProcessNext()
-			if err != nil {
-				slog.Error("error processing next task", "error", err)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		if !r.queue.HasNext() {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(50 * time.Millisecond):
+				continue
 			}
+		}
+
+		if err := r.queue.ProcessNext(ctx); err != nil {
+			slog.Error("error processing next task", "error", err)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"easycelery/internal/executor"
 	"easycelery/internal/task"
 	"errors"
@@ -10,7 +11,7 @@ import (
 type Queue interface {
 	Push(task task.Task)
 	Pop() (*task.Task, error)
-	ProcessNext() error
+	ProcessNext(ctx context.Context) error
 	HasNext() bool
 }
 
@@ -40,7 +41,7 @@ func (q *InMemoryQueue) Pop() (*task.Task, error) {
 	return &poppedTask, nil
 }
 
-func (q *InMemoryQueue) ProcessNext() error {
+func (q *InMemoryQueue) ProcessNext(ctx context.Context) error {
 	taskToProcess, err := q.Pop()
 	if err != nil {
 		if taskToProcess != nil {
@@ -50,7 +51,7 @@ func (q *InMemoryQueue) ProcessNext() error {
 		}
 	}
 	queue_executor := executor.GetDefaultExecutor()
-	res, err := queue_executor.Process(taskToProcess)
+	res, err := queue_executor.Process(taskToProcess, ctx)
 	slog.Info("Task completed",
 		"task_id", taskToProcess.ID(),
 		"result", res,

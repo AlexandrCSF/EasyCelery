@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"easycelery/internal/task"
 	"errors"
 	"sync"
@@ -28,7 +29,7 @@ func GetDefaultExecutor() *DefaultExecutor {
 func (e *DefaultExecutor) Auth() (any, error) {
 	return nil, nil
 }
-func (executor *DefaultExecutor) Process(t *task.Task) (any, error) {
+func (executor *DefaultExecutor) Process(t *task.Task, ctx context.Context) (any, error) {
 	t.SetStatus(task.StatusProcessing)
 	t.SetStartAt()
 
@@ -38,7 +39,14 @@ func (executor *DefaultExecutor) Process(t *task.Task) (any, error) {
 		return nil, errors.New(t.Error)
 	}
 
-	res, err := t.Func()()
+	if err := ctx.Err(); err != nil {
+		t.SetStatus(task.StatusError)
+		t.Error = err.Error()
+		t.CompletedAt = time.Now()
+		return nil, err
+	}
+
+	res, err := t.Func()(ctx)
 	if err != nil {
 		t.SetStatus(task.StatusError)
 		t.Error = err.Error()

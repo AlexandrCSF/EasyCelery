@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ const (
 	StatusError      TaskStatuses = "error"
 )
 
-type TaskFunc func() (any, error)
+type TaskFunc func(ctx context.Context) (any, error)
 type Task struct {
 	id string
 
