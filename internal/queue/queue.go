@@ -13,16 +13,35 @@ type Queue interface {
 	Pop() (*task.Task, error)
 	ProcessNext(ctx context.Context) error
 	HasNext() bool
+	GetExecutor() executor.Executor
+	HandleTaskError(task task.Task) error
+	HandleTaskSuccess(task task.Task) error
 }
 
 type InMemoryQueue struct {
 	tasksToProcess []task.Task
 	completedTasks []task.Task
 	erroredTasks   []task.Task
+	executor       executor.Executor
+}
+
+func (q *InMemoryQueue) HandleTaskError(task task.Task) error {
+	q.erroredTasks = append(q.erroredTasks, task)
+	return nil
+}
+
+func (q *InMemoryQueue) HandleTaskSuccess(task task.Task) error {
+	q.completedTasks = append(q.completedTasks, task)
+	return nil
 }
 
 func NewInMemoryQueue() *InMemoryQueue {
-	return &InMemoryQueue{}
+	return &InMemoryQueue{
+		executor: executor.GetDefaultExecutor(),
+	}
+}
+func (q *InMemoryQueue) GetExecutor() executor.Executor {
+	return executor.GetDefaultExecutor()
 }
 
 func (q *InMemoryQueue) Push(task task.Task) {
@@ -49,21 +68,24 @@ func (q *InMemoryQueue) ProcessNext(ctx context.Context) error {
 	taskToProcess, err := q.Pop()
 	if err != nil {
 		if taskToProcess != nil {
-			q.erroredTasks = append(q.erroredTasks, *taskToProcess)
+			_ = q.HandleTaskError(*taskToProcess)
+			return err
 		} else {
 			return err
 		}
 	}
-	queue_executor := executor.GetDefaultExecutor()
-	res, err := queue_executor.Process(taskToProcess, ctx)
+	res, err := q.GetExecutor().Process(taskToProcess, ctx)
 	slog.Info("Task completed",
 		"task_id", taskToProcess.ID(),
 		"result", res,
 	)
 	if err != nil {
-		q.erroredTasks = append(q.erroredTasks, *taskToProcess)
+		_ = q.HandleTaskError(*taskToProcess)
 		return err
 	}
-	q.completedTasks = append(q.completedTasks, *taskToProcess)
+	err = q.HandleTaskSuccess(*taskToProcess)
+	if err != nil {
+		return err
+	}
 	return nil
 }

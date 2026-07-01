@@ -14,7 +14,7 @@ var (
 )
 
 type Executor interface {
-	Process(task *task.Task) (any, error)
+	Process(task *task.Task, ctx context.Context) (any, error)
 	Auth() (any, error)
 }
 type DefaultExecutor struct {
