@@ -19,14 +19,6 @@ type Executor interface {
 type DefaultExecutor struct {
 }
 
-func ExecutorTaskAlias(taskToAlias task.BaseTask) Executor {
-	switch taskToAlias.(type) {
-	case *task.Task:
-		return &DefaultExecutor{}
-	default:
-		return &DefaultExecutor{}
-	}
-}
 func GetDefaultExecutor() *DefaultExecutor {
 	once.Do(func() {
 		inst = &DefaultExecutor{}
