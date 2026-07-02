@@ -43,7 +43,6 @@ func (r *DefaultRunner) Run(ctx context.Context) {
 			}
 		case <-ctx.Done():
 			return
-		default:
 		}
 	}
 }
