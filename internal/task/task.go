@@ -17,6 +17,14 @@ const (
 )
 
 type TaskFunc func(ctx context.Context) (any, error)
+
+type BaseTask interface {
+	Status() TaskStatuses
+	SetStatus(status TaskStatuses)
+	Func() TaskFunc
+	ID() string
+	SetStartAt()
+}
 type Task struct {
 	id string
 

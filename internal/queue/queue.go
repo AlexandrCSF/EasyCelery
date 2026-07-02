@@ -13,9 +13,8 @@ type Queue interface {
 	Pop() (*task.Task, error)
 	HandleNext(ctx context.Context) error
 	HasNext() bool
-	GetNotificationChannel() chan struct{}
+	NotificationChannel() chan struct{}
 	Notify()
-	GetExecutor() executor.Executor
 	HandleTaskError(task task.Task) error
 	HandleTaskSuccess(task task.Task) error
 }
@@ -24,7 +23,6 @@ type InMemoryQueue struct {
 	tasksToProcess      []task.Task
 	completedTasks      []task.Task
 	erroredTasks        []task.Task
-	executor            executor.Executor
 	notificationChannel chan struct{}
 }
 
@@ -32,7 +30,7 @@ func (q *InMemoryQueue) HandleTaskError(task task.Task) error {
 	q.erroredTasks = append(q.erroredTasks, task)
 	return nil
 }
-func (q *InMemoryQueue) GetNotificationChannel() chan struct{} {
+func (q *InMemoryQueue) NotificationChannel() chan struct{} {
 	return q.notificationChannel
 }
 
@@ -43,15 +41,11 @@ func (q *InMemoryQueue) HandleTaskSuccess(task task.Task) error {
 
 func NewInMemoryQueue() *InMemoryQueue {
 	return &InMemoryQueue{
-		executor:            executor.GetDefaultExecutor(),
 		notificationChannel: make(chan struct{}, 1),
 	}
 }
-func (q *InMemoryQueue) GetExecutor() executor.Executor {
-	return executor.GetDefaultExecutor()
-}
 func (q *InMemoryQueue) Notify() {
-	q.GetNotificationChannel() <- struct{}{}
+	q.NotificationChannel() <- struct{}{}
 }
 func (q *InMemoryQueue) Push(task task.Task) {
 	q.tasksToProcess = append(q.tasksToProcess, task)
@@ -84,7 +78,7 @@ func (q *InMemoryQueue) HandleNext(ctx context.Context) error {
 			return err
 		}
 	}
-	res, err := q.GetExecutor().Process(taskToProcess, ctx)
+	res, err := executor.ExecutorTaskAlias(taskToProcess).Process(taskToProcess, ctx)
 	slog.Info("Task completed",
 		"task_id", taskToProcess.ID(),
 		"result", res,
