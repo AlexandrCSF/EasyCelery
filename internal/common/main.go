@@ -34,7 +34,7 @@ func main() {
 	}()
 
 	for i := 0; i < 10; i++ {
-		mainRunner.SendTask(*task.NewTask(func(ctx context.Context) (any, error) {
+		mainRunner.SendTask(task.NewTask(func(ctx context.Context) (any, error) {
 			time.Sleep(1 * time.Second)
 			return sumTwo(10, 15)
 		}))

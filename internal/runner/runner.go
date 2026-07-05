@@ -15,22 +15,22 @@ type Runner interface {
 }
 
 type DefaultRunner struct {
-	queue       queue.Queue
+	queue       *queue.DefaultQueue
 	concurrency int
 }
 
-func NewDefaultRunner(q queue.Queue, concurrency int) *DefaultRunner {
+func NewDefaultRunner(q *queue.DefaultQueue, concurrency int) *DefaultRunner {
 	if concurrency <= 0 {
 		concurrency = defaultConcurrency
 	}
 	return &DefaultRunner{queue: q, concurrency: concurrency}
 }
 
-func NewDefaultRunnerDefaultValues(q queue.Queue) *DefaultRunner {
+func NewDefaultRunnerDefaultValues(q *queue.DefaultQueue) *DefaultRunner {
 	return &DefaultRunner{queue: q, concurrency: defaultConcurrency}
 }
 
-func (r *DefaultRunner) SendTask(t task.Task) {
+func (r *DefaultRunner) SendTask(t *task.Task) {
 	r.queue.Push(t)
 }
 

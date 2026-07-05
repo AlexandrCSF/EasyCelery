@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,11 +22,11 @@ type TaskFunc func(ctx context.Context) (any, error)
 type BaseTask interface {
 	Status() TaskStatuses
 	SetStatus(status TaskStatuses)
-	Func() TaskFunc
 	ID() string
 	SetStartAt()
 }
 type Task struct {
+	mu sync.RWMutex
 	id string
 
 	CreatedAt time.Time
@@ -50,19 +51,29 @@ func NewTask(fn TaskFunc) *Task {
 }
 
 func (t *Task) Status() TaskStatuses {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.status
 }
 func (t *Task) SetStatus(status TaskStatuses) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.status = status
 }
 
 func (t *Task) Func() TaskFunc {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.fn
 }
 func (t *Task) ID() string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	return t.id
 }
 
 func (t *Task) SetStartAt() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.StartAt = time.Now()
 }
