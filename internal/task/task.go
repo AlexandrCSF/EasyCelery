@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -41,8 +42,11 @@ type Task struct {
 }
 
 func NewTask(fn TaskFunc) *Task {
+	newId := uuid.NewString()
+	slog.Info("New task passed",
+		"id:", newId)
 	return &Task{
-		id:        uuid.NewString(),
+		id:        newId,
 		status:    StatusPlan,
 		createdAt: time.Now(),
 		fn:        fn,
