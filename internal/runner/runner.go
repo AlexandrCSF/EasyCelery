@@ -47,6 +47,7 @@ func (r *DefaultRunner) Run(ctx context.Context) {
 		case <-r.queue.NotificationChannel():
 			r.dispatch(ctx)
 		case <-ctx.Done():
+			slog.Error("Runner stopping due to context stop")
 			return
 		}
 	}
