@@ -5,7 +5,6 @@ import (
 	"easycelery/internal/task"
 	"errors"
 	"sync"
-	"time"
 )
 
 var (
@@ -32,27 +31,27 @@ func (executor *DefaultExecutor) Process(t *task.Task, ctx context.Context) (any
 
 	if t.Func() == nil {
 		t.SetStatus(task.StatusCompleted)
-		t.CompletedAt = time.Now()
-		return nil, errors.New(t.Error)
+		t.SetCompletedAtNow()
+		return nil, errors.New(t.Error())
 	}
 
 	if err := ctx.Err(); err != nil {
 		t.SetStatus(task.StatusError)
-		t.Error = err.Error()
-		t.CompletedAt = time.Now()
+		t.SetError(err.Error())
+		t.SetCompletedAtNow()
 		return nil, err
 	}
 
 	res, err := t.Func()(ctx)
 	if err != nil {
 		t.SetStatus(task.StatusError)
-		t.Error = err.Error()
-		t.CompletedAt = time.Now()
+		t.SetError(err.Error())
+		t.SetCompletedAtNow()
 		return nil, err
 	}
 
 	t.SetStatus(task.StatusCompleted)
-	t.Result = res
-	t.CompletedAt = time.Now()
+	t.SetResult(res)
+	t.SetCompletedAtNow()
 	return res, nil
 }

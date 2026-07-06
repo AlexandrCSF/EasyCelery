@@ -33,13 +33,16 @@ func NewInMemoryQueue() *DefaultQueue {
 }
 
 func (q *DefaultQueue) Notify() {
-	q.NotificationChannel() <- struct{}{}
+	select {
+	case q.notificationChannel <- struct{}{}:
+	default:
+	}
 }
 
 func (q *DefaultQueue) Push(task *task.Task) {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 	q.tasksToProcess = append(q.tasksToProcess, task)
+	q.mu.Unlock()
 	q.Notify()
 }
 
@@ -79,6 +82,6 @@ func (q *DefaultQueue) HandleNext(ctx context.Context) error {
 		q.erroredTasks = append(q.erroredTasks, taskToProcess)
 		return err
 	}
-	q.erroredTasks = append(q.completedTasks, taskToProcess)
+	q.completedTasks = append(q.completedTasks, taskToProcess)
 	return nil
 }

@@ -78,9 +78,9 @@ func TestTaskResultSaving(t *testing.T) {
 	result, err := tsk.Func()(context.Background())
 	require.NoError(t, err)
 
-	tsk.Result = result
+	tsk.result = result
 	tsk.SetStatus(StatusCompleted)
 
-	assert.Equal(t, 42, tsk.Result)
+	assert.Equal(t, 42, tsk.result)
 	assert.Equal(t, StatusCompleted, tsk.Status())
 }

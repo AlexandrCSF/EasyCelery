@@ -38,8 +38,10 @@ func (r *DefaultRunner) Run(ctx context.Context) {
 	for {
 		select {
 		case <-r.queue.NotificationChannel():
-			if err := r.queue.HandleNext(ctx); err != nil {
-				slog.Error("error processing next task", "error", err)
+			for r.queue.HasNext() {
+				if err := r.queue.HandleNext(ctx); err != nil {
+					slog.Error("error processing next task", "error", err)
+				}
 			}
 		case <-ctx.Done():
 			return

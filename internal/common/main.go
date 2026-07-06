@@ -32,13 +32,16 @@ func main() {
 		defer wg.Done()
 		mainRunner.Run(ctx)
 	}()
-
+	slog.Info("we are here")
 	for i := 0; i < 10; i++ {
 		mainRunner.SendTask(task.NewTask(func(ctx context.Context) (any, error) {
 			time.Sleep(1 * time.Second)
 			return sumTwo(10, 15)
 		}))
+		slog.Info("task passed")
+
 	}
+	slog.Info("we are here2")
 
 	<-ctx.Done()
 	wg.Wait()

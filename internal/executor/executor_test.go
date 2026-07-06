@@ -23,7 +23,7 @@ func TestExecutorSuccessfulExecution(t *testing.T) {
 	result, err := ex.Process(tsk, context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, "result", result)
-	assert.Equal(t, "result", tsk.Result)
+	assert.Equal(t, "result", tsk.result)
 	assert.Equal(t, task.StatusCompleted, tsk.Status())
 	assert.False(t, tsk.CompletedAt.IsZero())
 }

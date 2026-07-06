@@ -23,18 +23,17 @@ type BaseTask interface {
 	Status() TaskStatuses
 	SetStatus(status TaskStatuses)
 	ID() string
-	SetStartAt()
 }
 type Task struct {
 	mu sync.RWMutex
 	id string
 
-	CreatedAt time.Time
-	StartAt   time.Time
+	createdAt time.Time
+	startAt   time.Time
 
-	CompletedAt time.Time
-	Result      any
-	Error       string
+	completedAt time.Time
+	result      any
+	error       string
 
 	status TaskStatuses
 
@@ -45,7 +44,7 @@ func NewTask(fn TaskFunc) *Task {
 	return &Task{
 		id:        uuid.NewString(),
 		status:    StatusPlan,
-		CreatedAt: time.Now(),
+		createdAt: time.Now(),
 		fn:        fn,
 	}
 }
@@ -55,10 +54,50 @@ func (t *Task) Status() TaskStatuses {
 	defer t.mu.RUnlock()
 	return t.status
 }
+
+func (t *Task) CompletedAt() TaskStatuses {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.status
+}
+
+func (t *Task) Error() string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.error
+}
+
+func (t *Task) SetError(error string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.error = error
+}
+func (t *Task) SetCompletedAt(time time.Time) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.completedAt = time
+}
+
+func (t *Task) SetCompletedAtNow() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.completedAt = time.Now()
+}
 func (t *Task) SetStatus(status TaskStatuses) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.status = status
+}
+
+func (t *Task) SetResult(result any) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.result = result
+}
+func (t *Task) GetResult() any {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.result
 }
 
 func (t *Task) Func() TaskFunc {
@@ -75,5 +114,5 @@ func (t *Task) ID() string {
 func (t *Task) SetStartAt() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.StartAt = time.Now()
+	t.startAt = time.Now()
 }
