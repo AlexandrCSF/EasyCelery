@@ -24,7 +24,10 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 	mainQueue := queue.NewInMemoryQueue()
-	mainRunner := runner.NewDefaultRunner(mainQueue, *concurrency)
+	config := runner.Config{
+		Workers: *concurrency,
+	}
+	mainRunner := runner.NewDefaultRunner(mainQueue, config)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

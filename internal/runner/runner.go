@@ -10,20 +10,24 @@ import (
 const defaultNumWorkers = 1
 
 type Runner interface {
+	Config
 	Run(ctx context.Context)
 }
-
+type Config struct {
+	Workers int
+}
 type DefaultRunner struct {
 	queue   *queue.DefaultQueue
 	workers []*worker.Worker
 }
 
-func NewDefaultRunner(q *queue.DefaultQueue, numWorkers int) *DefaultRunner {
-	if numWorkers <= 0 {
-		numWorkers = defaultNumWorkers
+func NewDefaultRunner(q *queue.DefaultQueue, config Config) *DefaultRunner {
+	if config.Workers <= 0 {
+		slog.Error("numWorkers parameter must be bigger than 0")
+		return nil
 	}
 	var workers []*worker.Worker
-	for i := 0; i < numWorkers; i++ {
+	for i := 0; i < config.Workers; i++ {
 		workers = append(workers, worker.NewWorker(q))
 	}
 	return &DefaultRunner{queue: q, workers: workers}
