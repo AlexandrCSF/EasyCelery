@@ -55,12 +55,16 @@ func (t *Task) Status() TaskStatuses {
 	return t.status
 }
 
-func (t *Task) CompletedAt() TaskStatuses {
+func (t *Task) CompletedAt() time.Time {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return t.status
+	return t.completedAt
 }
-
+func (t *Task) StartAt() time.Time {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.startAt
+}
 func (t *Task) Error() string {
 	t.mu.RLock()
 	defer t.mu.RUnlock()

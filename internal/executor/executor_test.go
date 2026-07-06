@@ -23,9 +23,9 @@ func TestExecutorSuccessfulExecution(t *testing.T) {
 	result, err := ex.Process(tsk, context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, "result", result)
-	assert.Equal(t, "result", tsk.result)
+	assert.Equal(t, "result", tsk.GetResult())
 	assert.Equal(t, task.StatusCompleted, tsk.Status())
-	assert.False(t, tsk.CompletedAt.IsZero())
+	assert.False(t, tsk.CompletedAt().IsZero())
 }
 
 func TestExecutorErrorHandling(t *testing.T) {
@@ -40,7 +40,7 @@ func TestExecutorErrorHandling(t *testing.T) {
 	assert.Nil(t, result)
 	assert.Equal(t, task.StatusError, tsk.Status())
 	assert.Equal(t, expectedErr.Error(), tsk.Error)
-	assert.False(t, tsk.CompletedAt.IsZero())
+	assert.False(t, tsk.CompletedAt().IsZero())
 }
 
 func TestExecutorStatusTransitions(t *testing.T) {
@@ -55,7 +55,7 @@ func TestExecutorStatusTransitions(t *testing.T) {
 		_, err := ex.Process(tsk, context.Background())
 		require.NoError(t, err)
 		assert.Equal(t, task.StatusCompleted, tsk.Status())
-		assert.False(t, tsk.StartAt.IsZero())
+		assert.False(t, tsk.StartAt().IsZero())
 	})
 
 	t.Run("plan to processing to error", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestExecutorStatusTransitions(t *testing.T) {
 		_, err := ex.Process(tsk, context.Background())
 		require.Error(t, err)
 		assert.Equal(t, task.StatusError, tsk.Status())
-		assert.False(t, tsk.StartAt.IsZero())
+		assert.False(t, tsk.StartAt().IsZero())
 	})
 
 	t.Run("cancelled context", func(t *testing.T) {
@@ -97,8 +97,8 @@ func TestExecutorSetsTimestamps(t *testing.T) {
 	require.NoError(t, err)
 
 	after := time.Now()
-	assert.False(t, tsk.StartAt.Before(before))
-	assert.False(t, tsk.StartAt.After(after))
-	assert.False(t, tsk.CompletedAt.Before(before))
-	assert.False(t, tsk.CompletedAt.After(after))
+	assert.False(t, tsk.StartAt().Before(before))
+	assert.False(t, tsk.StartAt().After(after))
+	assert.False(t, tsk.CompletedAt().Before(before))
+	assert.False(t, tsk.CompletedAt().After(after))
 }
