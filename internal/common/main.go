@@ -19,11 +19,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	concurrency := flag.Int("concurrency", 5, "Number of concurrent processes")
+	flag.Parse()
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
-	mainQueue := queue.NewInMemoryQueue()
+	mainQueue := queue.NewInMemoryQueue(*concurrency)
 	config := runner.Config{
 		Workers: *concurrency,
 	}

@@ -5,6 +5,7 @@ import (
 	"easycelery/internal/queue"
 	"easycelery/internal/worker"
 	"log/slog"
+	"sync"
 )
 
 const defaultNumWorkers = 1
@@ -42,36 +43,16 @@ func NewDefaultRunnerDefaultValues(q *queue.DefaultQueue) *DefaultRunner {
 }
 
 func (r *DefaultRunner) Run(ctx context.Context) {
-	for {
-		select {
-		case <-r.queue.NotificationChannel():
-			r.dispatch(ctx)
-		case <-ctx.Done():
-			slog.Error("Runner stopping due to context stop")
-			return
-		}
-	}
-}
-
-func (r *DefaultRunner) dispatch(ctx context.Context) {
-	for r.queue.HasNext() {
-		w := r.FindIdleWorker()
-		if w == nil {
-			return
-		}
+	var wg sync.WaitGroup
+	for _, w := range r.workers {
+		wg.Add(1)
 		go func(w *worker.Worker) {
-			if err := w.TakeOnATask(ctx); err != nil {
-				slog.Error("error processing task", "error", err, "worker", w.ID())
-			}
-			r.queue.Notify()
+			defer wg.Done()
+			w.Run(ctx)
 		}(w)
 	}
-}
-func (r *DefaultRunner) FindIdleWorker() *worker.Worker {
-	for _, w := range r.workers {
-		if w.TryStart() {
-			return w
-		}
-	}
-	return nil
+
+	<-ctx.Done()
+	slog.Info("Runner stopping due to context stop")
+	wg.Wait()
 }

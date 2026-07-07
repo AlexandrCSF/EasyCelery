@@ -9,6 +9,8 @@ import (
 	"sync"
 )
 
+var ErrEmpty = errors.New("queue is empty")
+
 type Queue interface {
 	Push(task *task.Task)
 	Pop() (*task.Task, error)
@@ -21,6 +23,7 @@ type DefaultQueue struct {
 	completedTasks      []*task.Task
 	erroredTasks        []*task.Task
 	notificationChannel chan struct{}
+	maxWorkers          int
 }
 
 func (q *DefaultQueue) NotificationChannel() chan struct{} {
@@ -31,37 +34,43 @@ func (q *DefaultQueue) Length() int {
 	defer q.mu.RUnlock()
 	return len(q.tasksToProcess)
 }
-func NewInMemoryQueue() *DefaultQueue {
+func NewInMemoryQueue(workers int) *DefaultQueue {
 	return &DefaultQueue{
-		notificationChannel: make(chan struct{}, 1),
+		notificationChannel: make(chan struct{}, workers),
+		maxWorkers:          workers,
 	}
 }
 
 func (q *DefaultQueue) Notify() {
-	select {
-	case q.notificationChannel <- struct{}{}:
-	default:
+	q.NotifyN(1)
+}
+
+func (q *DefaultQueue) NotifyN(n int) {
+	if n > q.maxWorkers {
+		n = q.maxWorkers
+	}
+	for i := 0; i < n; i++ {
+		select {
+		case q.notificationChannel <- struct{}{}:
+		default:
+			return
+		}
 	}
 }
 
 func (q *DefaultQueue) Push(task *task.Task) {
 	q.mu.Lock()
 	q.tasksToProcess = append(q.tasksToProcess, task)
+	pending := len(q.tasksToProcess)
 	q.mu.Unlock()
-	q.Notify()
-}
-
-func (q *DefaultQueue) HasNext() bool {
-	q.mu.RLock()
-	defer q.mu.RUnlock()
-	return len(q.tasksToProcess) > 0
+	q.NotifyN(pending)
 }
 
 func (q *DefaultQueue) Pop() (*task.Task, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if len(q.tasksToProcess) == 0 {
-		return nil, errors.New("queue is empty")
+		return nil, ErrEmpty
 	}
 	poppedTask := q.tasksToProcess[0]
 	q.tasksToProcess = q.tasksToProcess[1:]

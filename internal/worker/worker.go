@@ -4,6 +4,8 @@ import (
 	"context"
 	"easycelery/internal/executor"
 	"easycelery/internal/queue"
+	"easycelery/internal/task"
+	"errors"
 	"log/slog"
 	"sync"
 
@@ -21,10 +23,10 @@ type Worker struct {
 	mu     sync.Mutex
 	id     string
 	status WorkerStatuses
-	queue  queue.Queue
+	queue  *queue.DefaultQueue
 }
 
-func NewWorker(queue queue.Queue) *Worker {
+func NewWorker(queue *queue.DefaultQueue) *Worker {
 	return &Worker{
 		id:     uuid.NewString(),
 		status: StatusIdle,
@@ -46,14 +48,9 @@ func (w *Worker) SetStatus(status WorkerStatuses) {
 	w.status = status
 }
 
-func (w *Worker) TakeOnATask(ctx context.Context) error {
+func (w *Worker) TakeOnATask(task *task.Task, ctx context.Context) error {
 	defer w.SetStatus(StatusIdle)
 
-	task, err := w.queue.Pop()
-	if err != nil {
-		slog.Error("Worker errored while trying to get task from queue", "worker", w.id, "error", err)
-		return err
-	}
 	res, err := executor.GetDefaultExecutor().Process(task, ctx)
 	if err != nil {
 		slog.Error("Got an error while processing task",
@@ -67,16 +64,33 @@ func (w *Worker) TakeOnATask(ctx context.Context) error {
 		"result", res,
 		"worker", w.id,
 	)
+	w.queue.Notify()
 	return nil
 }
 
-func (w *Worker) TryStart() bool {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if w.status != StatusIdle {
-		return false
+func (w *Worker) Run(ctx context.Context) {
+	for {
+		select {
+		case <-w.queue.NotificationChannel():
+			processedTask, err := w.queue.Pop()
+			if err != nil {
+				if errors.Is(err, queue.ErrEmpty) {
+					break
+				}
+				slog.Error("Got an error while processing task",
+					"worker ID: ", w.id,
+					"error: ", err)
+				continue
+			}
+			err = w.TakeOnATask(processedTask, ctx)
+			if err != nil {
+				slog.Error("Got an error while processing task",
+					"worker ID: ", w.id,
+					"error: ", err)
+			}
+		case <-ctx.Done():
+			slog.Error("Worker stopping due to context stop", "id:", w.id)
+			return
+		}
 	}
-	w.status = StatusProcessing
-	return true
 }

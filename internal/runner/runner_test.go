@@ -18,7 +18,7 @@ func TestRunnerSingleTask(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	q := queue.NewInMemoryQueue()
+	q := queue.NewInMemoryQueue(1)
 	r := NewDefaultRunnerDefaultValues(q)
 
 	var executed atomic.Int32
@@ -38,7 +38,7 @@ func TestRunnerMultipleTasks(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	q := queue.NewInMemoryQueue()
+	q := queue.NewInMemoryQueue(1)
 	r := NewDefaultRunnerDefaultValues(q)
 
 	const taskCount = 3
@@ -61,7 +61,7 @@ func TestRunnerMultipleTasks(t *testing.T) {
 func TestRunnerContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	q := queue.NewInMemoryQueue()
+	q := queue.NewInMemoryQueue(1)
 	r := NewDefaultRunnerDefaultValues(q)
 
 	done := make(chan struct{})
