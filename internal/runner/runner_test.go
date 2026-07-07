@@ -22,7 +22,7 @@ func TestRunnerSingleTask(t *testing.T) {
 	r := NewDefaultRunnerDefaultValues(q)
 
 	var executed atomic.Int32
-	r.SendTask(*task.NewTask(func(ctx context.Context) (any, error) {
+	r.queue.Push(task.NewTask(func(ctx context.Context) (any, error) {
 		executed.Add(1)
 		return "ok", nil
 	}))
@@ -45,7 +45,7 @@ func TestRunnerMultipleTasks(t *testing.T) {
 	var executed atomic.Int32
 
 	for range taskCount {
-		r.SendTask(*task.NewTask(func(ctx context.Context) (any, error) {
+		r.queue.Push(task.NewTask(func(ctx context.Context) (any, error) {
 			executed.Add(1)
 			return nil, nil
 		}))
