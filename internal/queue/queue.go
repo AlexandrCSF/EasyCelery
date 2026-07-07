@@ -27,6 +27,8 @@ func (q *DefaultQueue) NotificationChannel() chan struct{} {
 	return q.notificationChannel
 }
 func (q *DefaultQueue) Length() int {
+	q.mu.RLock()
+	defer q.mu.RUnlock()
 	return len(q.tasksToProcess)
 }
 func NewInMemoryQueue() *DefaultQueue {
