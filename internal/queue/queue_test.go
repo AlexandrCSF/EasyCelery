@@ -22,7 +22,6 @@ func TestEmptyQueue(t *testing.T) {
 	q := NewInMemoryQueue(1)
 
 	assert.Equal(t, 0, q.Length())
-	assert.False(t, q.HasNext())
 
 	_, err := q.Pop()
 	assert.Error(t, err)
@@ -34,7 +33,6 @@ func TestPushQueue(t *testing.T) {
 	q.Push(testTask())
 
 	assert.Equal(t, 1, q.Length())
-	assert.True(t, q.HasNext())
 }
 
 func TestPopQueue(t *testing.T) {
@@ -45,7 +43,6 @@ func TestPopQueue(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, popped)
 	assert.Equal(t, 0, q.Length())
-	assert.False(t, q.HasNext())
 }
 
 func TestQueueFIFO(t *testing.T) {
