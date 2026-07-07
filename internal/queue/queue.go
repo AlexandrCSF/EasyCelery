@@ -12,6 +12,7 @@ import (
 type Queue interface {
 	Push(task *task.Task)
 	Pop() (*task.Task, error)
+	Length() int
 }
 
 type DefaultQueue struct {
@@ -25,7 +26,9 @@ type DefaultQueue struct {
 func (q *DefaultQueue) NotificationChannel() chan struct{} {
 	return q.notificationChannel
 }
-
+func (q *DefaultQueue) Length() int {
+	return len(q.tasksToProcess)
+}
 func NewInMemoryQueue() *DefaultQueue {
 	return &DefaultQueue{
 		notificationChannel: make(chan struct{}, 1),
