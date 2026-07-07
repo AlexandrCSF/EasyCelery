@@ -49,6 +49,7 @@ func (w *Worker) SetStatus(status WorkerStatuses) {
 }
 
 func (w *Worker) TakeOnATask(task *task.Task, ctx context.Context) error {
+	w.SetStatus(StatusProcessing)
 	defer w.SetStatus(StatusIdle)
 
 	res, err := executor.GetDefaultExecutor().Process(task, ctx)
