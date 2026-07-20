@@ -24,6 +24,7 @@ type BaseTask interface {
 	Status() TaskStatuses
 	SetStatus(status TaskStatuses)
 	ID() string
+	TryScheduleRetry(delay time.Duration) bool
 }
 type Task struct {
 	mu sync.RWMutex
@@ -39,6 +40,10 @@ type Task struct {
 	status TaskStatuses
 
 	fn TaskFunc
+
+	retryCount int
+	maxRetries int
+	retryAt    time.Time
 }
 
 func NewTask(fn TaskFunc) *Task {
@@ -123,4 +128,15 @@ func (t *Task) SetStartAt() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.startAt = time.Now()
+}
+
+func (t *Task) TryScheduleRetry(at time.Time) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.retryCount >= t.maxRetries {
+		return false
+	}
+	t.retryCount++
+	t.retryAt = at
+	return true
 }

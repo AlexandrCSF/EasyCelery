@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"sync"
+	"time"
 )
 
 var ErrEmpty = errors.New("queue is empty")
@@ -15,6 +16,7 @@ type Queue interface {
 	Push(task *task.Task)
 	Pop() (*task.Task, error)
 	Length() int
+	PushAt(t *task.Task, at time.Time) error
 }
 
 type DefaultQueue struct {
@@ -97,5 +99,9 @@ func (q *DefaultQueue) HandleNext(ctx context.Context) error {
 		return err
 	}
 	q.completedTasks = append(q.completedTasks, taskToProcess)
+	return nil
+}
+
+func (q *DefaultQueue) PushAt(t *task.Task, at time.Time) error {
 	return nil
 }
