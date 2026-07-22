@@ -8,7 +8,6 @@ import (
 	"errors"
 	"log/slog"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -67,7 +66,6 @@ func (w *Worker) TakeOnATask(task *task.Task, ctx context.Context) error {
 }
 
 func (w *Worker) Run(ctx context.Context) {
-	defaultDelay := 5 * time.Second
 	for {
 		select {
 		case <-w.queue.NotificationChannel():
@@ -86,9 +84,10 @@ func (w *Worker) Run(ctx context.Context) {
 				slog.Error("Got an error while processing task",
 					"worker ID", w.id,
 					"error", err,
-					"attempting retry in", defaultDelay)
-				if processedTask.TryScheduleRetry(defaultDelay) {
-					w.queue.PushLater(ctx, processedTask, defaultDelay)
+					"attempting retry in", processedTask.RetryDelay())
+				delay, ok := processedTask.TryScheduleRetry()
+				if ok && delay != nil {
+					w.queue.PushLater(ctx, processedTask, *delay)
 				} else {
 					slog.Error("Cannot send task to retry!",
 						"task_id", processedTask.ID())

@@ -47,6 +47,11 @@ type Task struct {
 	retryDelay time.Duration
 }
 
+func WithRetryDelay(n time.Duration) TaskOption {
+	return func(t *Task) {
+		t.retryDelay = n
+	}
+}
 func WithMaxRetries(n int) TaskOption {
 	return func(t *Task) {
 		t.maxRetries = n
@@ -54,10 +59,11 @@ func WithMaxRetries(n int) TaskOption {
 }
 func NewTask(fn TaskFunc, opts ...TaskOption) *Task {
 	t := &Task{
-		id:        uuid.NewString(),
-		status:    StatusPlan,
-		createdAt: time.Now(),
-		fn:        fn,
+		id:         uuid.NewString(),
+		status:     StatusPlan,
+		createdAt:  time.Now(),
+		fn:         fn,
+		retryDelay: 2 * time.Second,
 	}
 
 	for _, opt := range opts {
@@ -139,13 +145,18 @@ func (t *Task) SetStartAt() {
 	t.startAt = time.Now()
 }
 
-func (t *Task) TryScheduleRetry(delay time.Duration) bool {
+func (t *Task) TryScheduleRetry() (*time.Duration, bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.retryCount >= t.maxRetries && !(t.maxRetries <= 0) {
-		return false
+		return nil, false
 	}
 	t.retryCount++
-	t.retryDelay = delay
-	return true
+	return &t.retryDelay, true
+}
+
+func (t *Task) RetryDelay() time.Duration {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.retryDelay
 }
