@@ -55,10 +55,6 @@ func (w *Worker) TakeOnATask(task *task.Task, ctx context.Context) error {
 
 	res, err := executor.GetDefaultExecutor().Process(task, ctx)
 	if err != nil {
-		slog.Error("Got an error while processing task",
-			"task_id", task.ID(),
-			"error", err,
-			"worker", w.id)
 		return err
 	}
 	slog.Info("Task completed",
@@ -91,8 +87,12 @@ func (w *Worker) Run(ctx context.Context) {
 					"worker ID", w.id,
 					"error", err,
 					"attempting retry in", defaultDelay)
-				processedTask.TryScheduleRetry(defaultDelay)
-				w.queue.PushLater(ctx, processedTask, defaultDelay)
+				if processedTask.TryScheduleRetry(defaultDelay) {
+					w.queue.PushLater(ctx, processedTask, defaultDelay)
+				} else {
+					slog.Error("Cannot send task to retry!",
+						"task_id", processedTask.ID())
+				}
 			}
 		case <-ctx.Done():
 			slog.Error("Worker stopping due to context stop", "id:", w.id)

@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"log/slog"
 	"sync"
 	"time"
 
@@ -26,6 +25,8 @@ type BaseTask interface {
 	ID() string
 	TryScheduleRetry(delay time.Duration) bool
 }
+type TaskOption func(*Task)
+
 type Task struct {
 	mu sync.RWMutex
 	id string
@@ -46,16 +47,24 @@ type Task struct {
 	retryDelay time.Duration
 }
 
-func NewTask(fn TaskFunc) *Task {
-	newId := uuid.NewString()
-	slog.Info("New task passed",
-		"id:", newId)
-	return &Task{
-		id:        newId,
+func WithMaxRetries(n int) TaskOption {
+	return func(t *Task) {
+		t.maxRetries = n
+	}
+}
+func NewTask(fn TaskFunc, opts ...TaskOption) *Task {
+	t := &Task{
+		id:        uuid.NewString(),
 		status:    StatusPlan,
 		createdAt: time.Now(),
 		fn:        fn,
 	}
+
+	for _, opt := range opts {
+		opt(t)
+	}
+
+	return t
 }
 
 func (t *Task) Status() TaskStatuses {
@@ -133,7 +142,7 @@ func (t *Task) SetStartAt() {
 func (t *Task) TryScheduleRetry(delay time.Duration) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if t.retryCount >= t.maxRetries {
+	if t.retryCount >= t.maxRetries && !(t.maxRetries <= 0) {
 		return false
 	}
 	t.retryCount++
