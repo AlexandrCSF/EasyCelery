@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -70,6 +71,7 @@ func (w *Worker) TakeOnATask(task *task.Task, ctx context.Context) error {
 }
 
 func (w *Worker) Run(ctx context.Context) {
+	defaultDelay := 5 * time.Second
 	for {
 		select {
 		case <-w.queue.NotificationChannel():
@@ -86,8 +88,11 @@ func (w *Worker) Run(ctx context.Context) {
 			err = w.TakeOnATask(processedTask, ctx)
 			if err != nil {
 				slog.Error("Got an error while processing task",
-					"worker ID: ", w.id,
-					"error: ", err)
+					"worker ID", w.id,
+					"error", err,
+					"attempting retry in", defaultDelay)
+				processedTask.TryScheduleRetry(defaultDelay)
+				w.queue.PushLater(ctx, processedTask, defaultDelay)
 			}
 		case <-ctx.Done():
 			slog.Error("Worker stopping due to context stop", "id:", w.id)

@@ -5,6 +5,7 @@ import (
 	"easycelery/internal/queue"
 	"easycelery/internal/runner"
 	"easycelery/internal/task"
+	"errors"
 	"flag"
 	"log/slog"
 	"math/rand"
@@ -40,7 +41,7 @@ func main() {
 	for i := 0; i < 10; i++ {
 		mainQueue.Push(task.NewTask(func(ctx context.Context) (any, error) {
 			time.Sleep(1 * time.Second)
-			return sumTwo(10, 15)
+			return randomError(10, 15)
 		}))
 
 	}
@@ -54,5 +55,12 @@ func addRandom() (any, error) {
 }
 
 func sumTwo(a, b int) (any, error) {
+	return a + b, nil
+}
+
+func randomError(a, b int) (any, error) {
+	if rand.Intn(2) == 1 {
+		return nil, errors.New("Send to Restart")
+	}
 	return a + b, nil
 }

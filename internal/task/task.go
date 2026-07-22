@@ -43,7 +43,7 @@ type Task struct {
 
 	retryCount int
 	maxRetries int
-	retryAt    time.Time
+	retryDelay time.Duration
 }
 
 func NewTask(fn TaskFunc) *Task {
@@ -130,13 +130,13 @@ func (t *Task) SetStartAt() {
 	t.startAt = time.Now()
 }
 
-func (t *Task) TryScheduleRetry(at time.Time) bool {
+func (t *Task) TryScheduleRetry(delay time.Duration) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.retryCount >= t.maxRetries {
 		return false
 	}
 	t.retryCount++
-	t.retryAt = at
+	t.retryDelay = delay
 	return true
 }

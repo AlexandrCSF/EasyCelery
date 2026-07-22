@@ -16,14 +16,13 @@ type Queue interface {
 	Push(task *task.Task)
 	Pop() (*task.Task, error)
 	Length() int
-	PushAt(t *task.Task, at time.Time) error
+	PushLater(ctx context.Context, t *task.Task, delay time.Duration)
 }
 
 type DefaultQueue struct {
 	mu                  sync.RWMutex
 	tasksToProcess      []*task.Task
 	completedTasks      []*task.Task
-	erroredTasks        []*task.Task
 	notificationChannel chan struct{}
 	maxWorkers          int
 }
@@ -83,7 +82,6 @@ func (q *DefaultQueue) HandleNext(ctx context.Context) error {
 	taskToProcess, err := q.Pop()
 	if err != nil {
 		if taskToProcess != nil {
-			q.erroredTasks = append(q.erroredTasks, taskToProcess)
 			return err
 		} else {
 			return err
@@ -95,13 +93,21 @@ func (q *DefaultQueue) HandleNext(ctx context.Context) error {
 		"result", res,
 	)
 	if err != nil {
-		q.erroredTasks = append(q.erroredTasks, taskToProcess)
 		return err
 	}
 	q.completedTasks = append(q.completedTasks, taskToProcess)
 	return nil
 }
 
-func (q *DefaultQueue) PushAt(t *task.Task, at time.Time) error {
-	return nil
+func (q *DefaultQueue) PushLater(ctx context.Context, t *task.Task, delay time.Duration) {
+	go func() {
+		timer := time.NewTimer(delay)
+		select {
+		case <-timer.C:
+			q.Push(t)
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		}
+	}()
 }
