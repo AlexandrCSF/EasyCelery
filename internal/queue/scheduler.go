@@ -9,8 +9,6 @@ import (
 )
 
 type Scheduler struct {
-	mu sync.Mutex
-
 	heap *DelayedHeap
 
 	queue Queue
@@ -187,25 +185,29 @@ func (s *Scheduler) Run(ctx context.Context) {
 		}
 		select {
 		case <-timerC:
-			if s.heap.Peek().executeAt.After(time.Now()) {
+			peek := s.heap.Peek()
+			if peek == nil || peek.executeAt.After(time.Now()) {
 				break
 			}
 			delayedTask := s.heap.Pop()
 			s.queue.Push(delayedTask.task)
-			peek := s.heap.Peek()
+			peek = s.heap.Peek()
+			if peek == nil {
+				break
+			}
 			if peek != nil {
-				s.timer.Reset(time.Until(s.heap.Peek().executeAt))
+				s.timer.Reset(time.Until(peek.executeAt))
 			}
 		case <-s.wakeup:
 			if s.timer != nil {
 				peek := s.heap.Peek()
 				if peek != nil {
-					s.timer.Reset(time.Until(s.heap.Peek().executeAt))
+					s.timer.Reset(time.Until(peek.executeAt))
 				}
 			} else {
 				peek := s.heap.Peek()
 				if peek != nil {
-					s.timer = time.NewTimer(time.Until(s.heap.Peek().executeAt))
+					s.timer = time.NewTimer(time.Until(peek.executeAt))
 				}
 			}
 		case <-ctx.Done():

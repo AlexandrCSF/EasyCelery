@@ -64,3 +64,7 @@ func randomError(a, b int) (any, error) {
 	}
 	return a + b, nil
 }
+
+func alwaysError(a, b int) (any, error) {
+	return nil, errors.New("Send to Restart")
+}
