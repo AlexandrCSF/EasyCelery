@@ -170,9 +170,11 @@ func (s *Scheduler) Add(task *task.Task, delay time.Duration) {
 	}
 	s.heap.Push(delayedTask)
 
-	select {
-	case s.wakeup <- struct{}{}:
-	default:
+	if s.heap.Peek() == delayedTask {
+		select {
+		case s.wakeup <- struct{}{}:
+		default:
+		}
 	}
 }
 
