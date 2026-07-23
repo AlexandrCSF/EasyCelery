@@ -83,11 +83,12 @@ func (w *Worker) Run(ctx context.Context) {
 			if err != nil {
 				slog.Error("Got an error while processing task",
 					"worker ID", w.id,
+					"task_id", processedTask.ID(),
 					"error", err,
 					"attempting retry in", processedTask.RetryDelay())
 				delay, ok := processedTask.TryScheduleRetry()
 				if ok && delay != nil {
-					w.queue.PushLater(ctx, processedTask, *delay)
+					w.queue.PushLater(processedTask, *delay)
 				} else {
 					slog.Error("Cannot send task to retry!",
 						"task_id", processedTask.ID())

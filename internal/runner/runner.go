@@ -51,7 +51,11 @@ func (r *DefaultRunner) Run(ctx context.Context) {
 			w.Run(ctx)
 		}(w)
 	}
-
+	wg.Add(1)
+	go func(s *queue.Scheduler) {
+		defer wg.Done()
+		s.Run(ctx)
+	}(r.queue.Scheduler())
 	<-ctx.Done()
 	slog.Info("Runner stopping due to context stop")
 	wg.Wait()

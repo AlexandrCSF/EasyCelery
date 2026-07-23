@@ -38,7 +38,7 @@ func main() {
 		defer wg.Done()
 		mainRunner.Run(ctx)
 	}()
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		mainQueue.Push(task.NewTask(func(ctx context.Context) (any, error) {
 			time.Sleep(1 * time.Second)
 			return randomError(10, 15)

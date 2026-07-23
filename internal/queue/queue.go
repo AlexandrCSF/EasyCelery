@@ -1,11 +1,8 @@
 package queue
 
 import (
-	"context"
-	"easycelery/internal/executor"
 	"easycelery/internal/task"
 	"errors"
-	"log/slog"
 	"sync"
 	"time"
 )
@@ -16,7 +13,7 @@ type Queue interface {
 	Push(task *task.Task)
 	Pop() (*task.Task, error)
 	Length() int
-	PushLater(ctx context.Context, t *task.Task, delay time.Duration)
+	PushLater(t *task.Task, delay time.Duration)
 }
 
 type DefaultQueue struct {
@@ -25,6 +22,7 @@ type DefaultQueue struct {
 	completedTasks      []*task.Task
 	notificationChannel chan struct{}
 	maxWorkers          int
+	scheduler           *Scheduler
 }
 
 func (q *DefaultQueue) NotificationChannel() chan struct{} {
@@ -36,10 +34,12 @@ func (q *DefaultQueue) Length() int {
 	return len(q.tasksToProcess)
 }
 func NewInMemoryQueue(workers int) *DefaultQueue {
-	return &DefaultQueue{
+	queue := &DefaultQueue{
 		notificationChannel: make(chan struct{}, workers),
 		maxWorkers:          workers,
 	}
+	queue.scheduler = NewScheduler(queue)
+	return queue
 }
 
 func (q *DefaultQueue) Notify() {
@@ -78,36 +78,10 @@ func (q *DefaultQueue) Pop() (*task.Task, error) {
 	return poppedTask, nil
 }
 
-func (q *DefaultQueue) HandleNext(ctx context.Context) error {
-	taskToProcess, err := q.Pop()
-	if err != nil {
-		if taskToProcess != nil {
-			return err
-		} else {
-			return err
-		}
-	}
-	res, err := executor.GetDefaultExecutor().Process(taskToProcess, ctx)
-	slog.Info("Task completed",
-		"task_id", taskToProcess.ID(),
-		"result", res,
-	)
-	if err != nil {
-		return err
-	}
-	q.completedTasks = append(q.completedTasks, taskToProcess)
-	return nil
+func (q *DefaultQueue) PushLater(t *task.Task, delay time.Duration) {
+	q.scheduler.Add(t, delay)
 }
 
-func (q *DefaultQueue) PushLater(ctx context.Context, t *task.Task, delay time.Duration) {
-	go func() {
-		timer := time.NewTimer(delay)
-		select {
-		case <-timer.C:
-			q.Push(t)
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		}
-	}()
+func (q *DefaultQueue) Scheduler() *Scheduler {
+	return q.scheduler
 }
