@@ -59,8 +59,8 @@ func (d *DelayedTask) Equal(other *DelayedTask) bool {
 func (h *DelayedHeap) Push(task *DelayedTask) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	task.index = len(h.delayedTasks) - 1
 	h.delayedTasks = append(h.delayedTasks, task)
+	task.index = len(h.delayedTasks) - 1
 
 	h.shiftUp(len(h.delayedTasks) - 1)
 }
