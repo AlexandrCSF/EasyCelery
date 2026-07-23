@@ -9,6 +9,8 @@ import (
 )
 
 type Scheduler struct {
+	mu sync.Mutex
+
 	heap *DelayedHeap
 
 	queue Queue
@@ -27,7 +29,6 @@ func NewScheduler(queue Queue) *Scheduler {
 }
 
 type DelayedHeap struct {
-	mu           sync.Mutex
 	delayedTasks []*DelayedTask
 }
 
@@ -57,8 +58,6 @@ func (d *DelayedTask) Equal(other *DelayedTask) bool {
 	return d.executeAt.Equal(other.executeAt)
 }
 func (h *DelayedHeap) Push(task *DelayedTask) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	h.delayedTasks = append(h.delayedTasks, task)
 	task.index = len(h.delayedTasks) - 1
 
@@ -66,8 +65,6 @@ func (h *DelayedHeap) Push(task *DelayedTask) {
 }
 
 func (h *DelayedHeap) Peek() *DelayedTask {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	if len(h.delayedTasks) == 0 {
 		return nil
 	}
@@ -75,8 +72,6 @@ func (h *DelayedHeap) Peek() *DelayedTask {
 }
 
 func (h *DelayedHeap) Pop() *DelayedTask {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 
 	if len(h.delayedTasks) == 0 {
 		return nil
@@ -168,6 +163,8 @@ func (s *Scheduler) Add(task *task.Task, delay time.Duration) {
 		task:      task,
 		executeAt: time.Now().Add(delay),
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.heap.Push(delayedTask)
 
 	if s.heap.Peek() == delayedTask {
@@ -187,6 +184,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 		}
 		select {
 		case <-timerC:
+			s.mu.Lock()
 			peek := s.heap.Peek()
 			if peek == nil || peek.executeAt.After(time.Now()) {
 				break
@@ -200,7 +198,9 @@ func (s *Scheduler) Run(ctx context.Context) {
 			if peek != nil {
 				s.timer.Reset(time.Until(peek.executeAt))
 			}
+			s.mu.Unlock()
 		case <-s.wakeup:
+			s.mu.Lock()
 			if s.timer != nil {
 				peek := s.heap.Peek()
 				if peek != nil {
@@ -212,6 +212,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 					s.timer = time.NewTimer(time.Until(peek.executeAt))
 				}
 			}
+			s.mu.Unlock()
 		case <-ctx.Done():
 			slog.Info("Scheduler stopping due to context stop")
 			return
