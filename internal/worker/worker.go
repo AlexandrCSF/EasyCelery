@@ -3,8 +3,9 @@ package worker
 import (
 	"context"
 	"easycelery/internal/executor"
+	"easycelery/internal/pipeline"
+	"easycelery/internal/pipeline/policy"
 	"easycelery/internal/queue"
-	"easycelery/internal/task"
 	"errors"
 	"log/slog"
 	"sync"
@@ -20,17 +21,25 @@ const (
 )
 
 type Worker struct {
-	mu     sync.Mutex
-	id     string
-	status WorkerStatuses
-	queue  *queue.DefaultQueue
+	mu          sync.Mutex
+	id          string
+	status      WorkerStatuses
+	queue       *queue.DefaultQueue
+	pipeline    *pipeline.Pipeline
+	retryPolicy policy.RetryPolicy
 }
 
 func NewWorker(queue *queue.DefaultQueue) *Worker {
+	exec := executor.GetDefaultExecutor()
+
+	pipe := pipeline.NewPipeline(pipeline.ExecutionHandler(exec), pipeline.LoggingMiddleware())
+
 	return &Worker{
-		id:     uuid.NewString(),
-		status: StatusIdle,
-		queue:  queue,
+		id:          uuid.NewString(),
+		status:      StatusIdle,
+		queue:       queue,
+		pipeline:    pipe,
+		retryPolicy: policy.NewDefaultRetryPolicy(queue),
 	}
 }
 func (w *Worker) ID() string {
@@ -48,23 +57,6 @@ func (w *Worker) SetStatus(status WorkerStatuses) {
 	w.status = status
 }
 
-func (w *Worker) TakeOnATask(task *task.Task, ctx context.Context) error {
-	w.SetStatus(StatusProcessing)
-	defer w.SetStatus(StatusIdle)
-
-	res, err := executor.GetDefaultExecutor().Process(task, ctx)
-	if err != nil {
-		return err
-	}
-	slog.Info("Task completed",
-		"task_id", task.ID(),
-		"result", res,
-		"worker", w.id,
-	)
-	w.queue.Notify()
-	return nil
-}
-
 func (w *Worker) Run(ctx context.Context) {
 	for {
 		select {
@@ -79,20 +71,19 @@ func (w *Worker) Run(ctx context.Context) {
 					"error: ", err)
 				continue
 			}
-			err = w.TakeOnATask(processedTask, ctx)
-			if err != nil {
-				slog.Error("Got an error while processing task",
-					"worker ID", w.id,
-					"task_id", processedTask.ID(),
-					"error", err,
-					"attempting retry in", processedTask.RetryDelay())
-				delay, ok := processedTask.TryScheduleRetry()
-				if ok && delay != nil {
-					w.queue.PushLater(processedTask, *delay)
-				} else {
-					slog.Error("Cannot send task to retry!",
-						"task_id", processedTask.ID())
-				}
+			w.SetStatus(StatusProcessing)
+
+			err = w.pipeline.Execute(
+				ctx,
+				processedTask,
+			)
+
+			w.SetStatus(StatusIdle)
+
+			w.retryPolicy.Handle(processedTask, err)
+
+			if err == nil {
+				w.queue.Notify()
 			}
 		case <-ctx.Done():
 			slog.Error("Worker stopping due to context stop", "id:", w.id)
