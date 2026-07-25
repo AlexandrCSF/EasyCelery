@@ -187,12 +187,14 @@ func (s *Scheduler) Run(ctx context.Context) {
 			s.mu.Lock()
 			peek := s.heap.Peek()
 			if peek == nil || peek.executeAt.After(time.Now()) {
+				s.mu.Unlock()
 				break
 			}
 			delayedTask := s.heap.Pop()
 			s.queue.Push(delayedTask.task)
 			peek = s.heap.Peek()
 			if peek == nil {
+				s.mu.Unlock()
 				break
 			}
 			if peek != nil {
