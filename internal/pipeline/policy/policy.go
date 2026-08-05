@@ -1,12 +1,13 @@
 package policy
 
 import (
+	"context"
 	"easycelery/internal/queue"
 	"easycelery/internal/task"
 )
 
 type RetryPolicy interface {
-	Handle(task *task.Task, err error)
+	Handle(ctx context.Context, task *task.Task, err error)
 }
 
 type DefaultRetryPolicy struct {
@@ -20,6 +21,7 @@ func NewDefaultRetryPolicy(q queue.Queue) *DefaultRetryPolicy {
 }
 
 func (p *DefaultRetryPolicy) Handle(
+	ctx context.Context,
 	task *task.Task,
 	err error,
 ) {

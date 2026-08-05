@@ -72,19 +72,16 @@ func (w *Worker) Run(ctx context.Context) {
 				continue
 			}
 			w.SetStatus(StatusProcessing)
-
+			defer w.SetStatus(StatusIdle)
 			err = w.pipeline.Execute(
 				ctx,
 				processedTask,
 			)
 
-			w.SetStatus(StatusIdle)
+			w.retryPolicy.Handle(ctx, processedTask, err)
 
-			w.retryPolicy.Handle(processedTask, err)
+			w.queue.Notify()
 
-			if err == nil {
-				w.queue.Notify()
-			}
 		case <-ctx.Done():
 			slog.Error("Worker stopping due to context stop", "id:", w.id)
 			return
